@@ -38,7 +38,29 @@ chmod +x cluster.sh scripts/benchmark.sh
 Salida esperada:
 
 ```txt
-RESULT n=1024 procs=4 seconds=... gflops=... checksum=...
+RESULT variant=dynamic_linear n=1024 procs=4 seconds=... gflops=... checksum=...
+```
+
+## Versiones de memoria y representación
+
+El `Dockerfile` compila cuatro combinaciones para poder compararlas:
+
+- `mpi_matrix` / `mpi_matrix_dynamic_linear`: memoria dinámica + matrices lineales.
+- `mpi_matrix_dynamic_2d`: memoria dinámica + indexación 2D.
+- `mpi_matrix_static_linear`: memoria estática + matrices lineales.
+- `mpi_matrix_static_2d`: memoria estática + matrices 2D.
+
+Ejemplo:
+
+```sh
+./cluster.sh exec "mpirun -np 4 -ppn 1 ./mpi_matrix_static_2d 1024"
+```
+
+Las versiones estáticas usan `MAX_N=4096` por defecto, definido en compilación. Si se quiere
+otro límite:
+
+```sh
+mpicc -O3 -std=c99 -DMAX_N=2048 -o mpi_matrix_static_2d mpi_matrix_static_2d.c
 ```
 
 ## Escenarios pedidos en la práctica

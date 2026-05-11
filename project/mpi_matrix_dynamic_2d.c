@@ -1,6 +1,5 @@
 #include <mpi.h>
 
-#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -25,27 +24,24 @@ static void build_row_distribution(int n, int world_size, int *rows, int *displs
     }
 }
 
-static void fill_random_matrix(double *m, int n, unsigned int *seed) {
-    int total = n * n;
-    for (int i = 0; i < total; ++i) {
-        m[i] = (double)((rand_r(seed) % 10) + 1);
+static void fill_random_matrix(int n, double m[n][n], unsigned int *seed) {
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < n; ++j) {
+            m[i][j] = (double)((rand_r(seed) % 10) + 1);
+        }
     }
 }
 
-static void multiply_block(const double *a_local,
-                           const double *b,
-                           double *c_local,
+static void multiply_block(int n,
                            int local_rows,
-                           int n) {
+                           double a_local[local_rows][n],
+                           double b[n][n],
+                           double c_local[local_rows][n]) {
     for (int i = 0; i < local_rows; ++i) {
-        double *c_row = c_local + (size_t)i * n;
-        const double *a_row = a_local + (size_t)i * n;
-
         for (int k = 0; k < n; ++k) {
-            double a_ik = a_row[k];
-            const double *b_row = b + (size_t)k * n;
+            double a_ik = a_local[i][k];
             for (int j = 0; j < n; ++j) {
-                c_row[j] += a_ik * b_row[j];
+                c_local[i][j] += a_ik * b[k][j];
             }
         }
     }
@@ -112,11 +108,11 @@ int main(int argc, char **argv) {
     int local_rows = rows[world_rank];
     size_t local_elems = (size_t)local_rows * (size_t)n;
 
-    double *a_global = NULL;
-    double *c_global = NULL;
+    double(*a_global)[n] = NULL;
+    double(*c_global)[n] = NULL;
     if (world_rank == 0) {
-        a_global = (double *)malloc((size_t)n * (size_t)n * sizeof(double));
-        c_global = (double *)malloc((size_t)n * (size_t)n * sizeof(double));
+        a_global = (double(*)[n])malloc((size_t)n * sizeof(*a_global));
+        c_global = (double(*)[n])malloc((size_t)n * sizeof(*c_global));
         if (!a_global || !c_global) {
             fprintf(stderr, "Rank 0: memoria insuficiente para matrices globales.\n");
             free(rows);
@@ -128,12 +124,12 @@ int main(int argc, char **argv) {
             MPI_Finalize();
             return 1;
         }
-        fill_random_matrix(a_global, n, &seed);
+        fill_random_matrix(n, a_global, &seed);
     }
 
-    double *b = (double *)malloc((size_t)n * (size_t)n * sizeof(double));
-    double *a_local = (double *)malloc(local_elems * sizeof(double));
-    double *c_local = (double *)calloc(local_elems, sizeof(double));
+    double(*b)[n] = (double(*)[n])malloc((size_t)n * sizeof(*b));
+    double(*a_local)[n] = (double(*)[n])malloc((size_t)local_rows * sizeof(*a_local));
+    double(*c_local)[n] = (double(*)[n])calloc((size_t)local_rows, sizeof(*c_local));
     if (!b || !a_local || !c_local) {
         fprintf(stderr, "Rank %d: memoria insuficiente para matrices locales.\n", world_rank);
         free(rows);
@@ -151,16 +147,24 @@ int main(int argc, char **argv) {
 
     if (world_rank == 0) {
         unsigned int seed_b = seed ^ 0xA5A5A5A5U;
-        fill_random_matrix(b, n, &seed_b);
+        fill_random_matrix(n, b, &seed_b);
     }
 
-    MPI_Scatterv(a_global, counts, displs, MPI_DOUBLE, a_local, (int)local_elems, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-    MPI_Bcast(b, n * n, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    MPI_Scatterv(world_rank == 0 ? &a_global[0][0] : NULL,
+                 counts,
+                 displs,
+                 MPI_DOUBLE,
+                 &a_local[0][0],
+                 (int)local_elems,
+                 MPI_DOUBLE,
+                 0,
+                 MPI_COMM_WORLD);
+    MPI_Bcast(&b[0][0], n * n, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
     MPI_Barrier(MPI_COMM_WORLD);
     double t0 = MPI_Wtime();
 
-    multiply_block(a_local, b, c_local, local_rows, n);
+    multiply_block(n, local_rows, a_local, b, c_local);
 
     MPI_Barrier(MPI_COMM_WORLD);
     double t1 = MPI_Wtime();
@@ -169,10 +173,10 @@ int main(int argc, char **argv) {
     double compute_seconds = 0.0;
     MPI_Reduce(&local_compute_seconds, &compute_seconds, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
 
-    MPI_Gatherv(c_local,
+    MPI_Gatherv(&c_local[0][0],
                 (int)local_elems,
                 MPI_DOUBLE,
-                c_global,
+                world_rank == 0 ? &c_global[0][0] : NULL,
                 counts,
                 displs,
                 MPI_DOUBLE,
@@ -180,8 +184,10 @@ int main(int argc, char **argv) {
                 MPI_COMM_WORLD);
 
     double local_checksum = 0.0;
-    for (size_t i = 0; i < local_elems; ++i) {
-        local_checksum += c_local[i];
+    for (int i = 0; i < local_rows; ++i) {
+        for (int j = 0; j < n; ++j) {
+            local_checksum += c_local[i][j];
+        }
     }
 
     double checksum = 0.0;
@@ -189,7 +195,7 @@ int main(int argc, char **argv) {
 
     if (world_rank == 0) {
         double gflops = (2.0 * (double)n * (double)n * (double)n) / (compute_seconds * 1e9);
-        printf("RESULT variant=dynamic_linear n=%d procs=%d seconds=%.6f gflops=%.6f checksum=%.4f\n",
+        printf("RESULT variant=dynamic_2d n=%d procs=%d seconds=%.6f gflops=%.6f checksum=%.4f\n",
                n,
                world_size,
                compute_seconds,
