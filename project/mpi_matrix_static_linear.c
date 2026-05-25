@@ -31,6 +31,11 @@ static int parse_positive_int(const char *s) {
     return (int)value;
 }
 
+static unsigned int next_random_1_to_10(unsigned int *seed) {
+    *seed = (*seed * 1103515245U) + 12345U;
+    return ((*seed / 65536U) % 10U) + 1U;
+}
+
 static void build_row_distribution(int n, int world_size) {
     int base = n / world_size;
     int rem = n % world_size;
@@ -48,7 +53,7 @@ static void build_row_distribution(int n, int world_size) {
 static void fill_random_matrix(double *m, int n, unsigned int *seed) {
     size_t total = (size_t)n * (size_t)n;
     for (size_t i = 0; i < total; ++i) {
-        m[i] = (double)((rand_r(seed) % 10) + 1);
+        m[i] = (double)next_random_1_to_10(seed);
     }
 }
 

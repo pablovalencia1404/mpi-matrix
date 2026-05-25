@@ -1,4 +1,4 @@
-# Práctica IV - Multiplicación de Matrices con MPICH
+# Práctica MPICH - Multiplicación de Matrices
 
 Implementación de multiplicación de matrices cuadradas distribuida con MPI (MPICH) en C, ejecutada sobre un cluster Docker (master + workers).
 
@@ -9,6 +9,8 @@ Implementación de multiplicación de matrices cuadradas distribuida con MPI (MP
 - `docker-compose.yml`: levanta registry, nodo master y workers.
 - `cluster.sh`: automatiza build, push, escalado y ejecución remota.
 - `scripts/benchmark.sh`: ejecuta los escenarios de temporización pedidos en la práctica.
+- `scripts/analyze_results.py`: genera resumen y gráficas SVG a partir del CSV.
+- `docs/defensa.md`: guion de apoyo para la exposición oral.
 
 ## Requisitos
 
@@ -73,7 +75,16 @@ mpicc -O3 -std=c99 -DMAX_N=2048 -o mpi_matrix_static_2d mpi_matrix_static_2d.c
 Puedes ejecutar todo automáticamente:
 
 ```sh
-SIZES="1024 2048" REPEATS=3 ./scripts/benchmark.sh ./results.csv
+SIZES="1024 2048 4096" REPEATS=3 ./scripts/benchmark.sh ./results.csv
+python3 scripts/analyze_results.py ./results.csv
+```
+
+Para comparar todas las variantes:
+
+```sh
+VARIANTS="mpi_matrix mpi_matrix_dynamic_2d mpi_matrix_static_linear mpi_matrix_static_2d" \
+SIZES="1024 2048" REPEATS=3 ./scripts/benchmark.sh ./results_variants.csv
+python3 scripts/analyze_results.py ./results_variants.csv --out docs/results_variants_summary.md --charts-dir docs/charts_variants
 ```
 
 ## Apagar cluster
