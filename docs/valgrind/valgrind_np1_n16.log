@@ -1,0 +1,66 @@
+===== mpi_matrix =====
+==10== Memcheck, a memory error detector
+==10== Copyright (C) 2002-2022, and GNU GPL'd, by Julian Seward et al.
+==10== Using Valgrind-3.22.0 and LibVEX; rerun with -h for copyright info
+==10== Command: ./mpi_matrix 16
+==10== 
+RESULT variant=dynamic_linear n=16 procs=1 seconds=0.002141 gflops=0.003826 checksum=125977.0000
+==10== 
+==10== HEAP SUMMARY:
+==10==     in use at exit: 0 bytes in 0 blocks
+==10==   total heap usage: 6,573 allocs, 6,573 frees, 10,253,144 bytes allocated
+==10== 
+==10== All heap blocks were freed -- no leaks are possible
+==10== 
+==10== For lists of detected and suppressed errors, rerun with: -s
+==10== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)
+===== mpi_matrix_dynamic_2d =====
+==13== Memcheck, a memory error detector
+==13== Copyright (C) 2002-2022, and GNU GPL'd, by Julian Seward et al.
+==13== Using Valgrind-3.22.0 and LibVEX; rerun with -h for copyright info
+==13== Command: ./mpi_matrix_dynamic_2d 16
+==13== 
+RESULT variant=dynamic_2d n=16 procs=1 seconds=0.001937 gflops=0.004228 checksum=125977.0000
+==13== 
+==13== HEAP SUMMARY:
+==13==     in use at exit: 0 bytes in 0 blocks
+==13==   total heap usage: 6,573 allocs, 6,573 frees, 10,253,168 bytes allocated
+==13== 
+==13== All heap blocks were freed -- no leaks are possible
+==13== 
+==13== For lists of detected and suppressed errors, rerun with: -s
+==13== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)
+===== mpi_matrix_static_linear =====
+==16== Memcheck, a memory error detector
+==16== Copyright (C) 2002-2022, and GNU GPL'd, by Julian Seward et al.
+==16== Using Valgrind-3.22.0 and LibVEX; rerun with -h for copyright info
+==16== Command: ./mpi_matrix_static_linear 16
+==16== 
+==16== Warning: set address range perms: large range [0x10d000, 0x2810d000) (defined)
+RESULT variant=static_linear n=16 procs=1 seconds=0.002227 gflops=0.003677 checksum=122823.0000
+==16== 
+==16== HEAP SUMMARY:
+==16==     in use at exit: 0 bytes in 0 blocks
+==16==   total heap usage: 6,564 allocs, 6,564 frees, 10,242,919 bytes allocated
+==16== 
+==16== All heap blocks were freed -- no leaks are possible
+==16== 
+==16== For lists of detected and suppressed errors, rerun with: -s
+==16== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)
+===== mpi_matrix_static_2d =====
+==19== Memcheck, a memory error detector
+==19== Copyright (C) 2002-2022, and GNU GPL'd, by Julian Seward et al.
+==19== Using Valgrind-3.22.0 and LibVEX; rerun with -h for copyright info
+==19== Command: ./mpi_matrix_static_2d 16
+==19== 
+==19== Warning: set address range perms: large range [0x10d000, 0x2810d000) (defined)
+RESULT variant=static_2d n=16 procs=1 seconds=0.001707 gflops=0.004798 checksum=122823.0000
+==19== 
+==19== HEAP SUMMARY:
+==19==     in use at exit: 0 bytes in 0 blocks
+==19==   total heap usage: 6,574 allocs, 6,574 frees, 10,280,542 bytes allocated
+==19== 
+==19== All heap blocks were freed -- no leaks are possible
+==19== 
+==19== For lists of detected and suppressed errors, rerun with: -s
+==19== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)

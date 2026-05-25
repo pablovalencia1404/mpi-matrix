@@ -86,7 +86,31 @@ Aspectos que hay que comentar durante la defensa:
 - Comparar 4 nodos con 1 proceso por nodo frente a 4 nodos con 2 procesos por nodo.
 - Confirmar que el checksum se mantiene constante para cada tamano.
 
-## 7. Conclusiones esperadas
+## 7. Depuracion con Valgrind
+
+Se ha usado Valgrind dentro del contenedor Docker de la practica para comprobar errores de memoria. Como WSL no tenia Valgrind instalado sin permisos de sudo, se instalo temporalmente en el contenedor con `apk add --no-cache valgrind`.
+
+Pruebas realizadas:
+
+```sh
+mpirun -np 1 valgrind --leak-check=full --show-leak-kinds=definite,indirect,possible --error-exitcode=97 ./mpi_matrix 16
+mpirun -np 1 valgrind --leak-check=full --show-leak-kinds=definite,indirect,possible --error-exitcode=97 ./mpi_matrix_dynamic_2d 16
+mpirun -np 1 valgrind --leak-check=full --show-leak-kinds=definite,indirect,possible --error-exitcode=97 ./mpi_matrix_static_linear 16
+mpirun -np 1 valgrind --leak-check=full --show-leak-kinds=definite,indirect,possible --error-exitcode=97 ./mpi_matrix_static_2d 16
+mpirun -np 4 valgrind --leak-check=full --show-leak-kinds=definite,indirect,possible --error-exitcode=97 ./mpi_matrix 16
+```
+
+Resultado:
+
+- Las cuatro variantes pasan con `np=1`.
+- La variante principal tambien pasa con `np=4`.
+- Valgrind informa `All heap blocks were freed -- no leaks are possible`.
+- Valgrind informa `ERROR SUMMARY: 0 errors from 0 contexts`.
+- Los logs estan guardados en `docs/valgrind/`.
+
+En las variantes estaticas aparece un aviso de rango grande de memoria, esperado porque reservan matrices globales grandes con `MAX_N=4096`; no es una fuga ni un error de acceso.
+
+## 8. Conclusiones esperadas
 
 La multiplicacion de matrices tiene suficiente carga computacional para beneficiarse de distribuir filas entre procesos. Aun asi, la mejora no es perfectamente lineal por el coste de comunicacion, la sincronizacion y la replicacion de la matriz `B`.
 
@@ -94,10 +118,10 @@ En tamanos pequenos, el coste fijo de MPI pesa mas y la mejora puede ser limitad
 
 El escenario de 4 nodos con 2 procesos por nodo puede no mejorar frente a 4 nodos con 1 proceso por nodo si los contenedores compiten por los mismos nucleos fisicos o por ancho de banda de memoria.
 
-## 8. Futuras mejoras
+## 9. Futuras mejoras
 
 - Dividir tambien la matriz `B` por bloques para reducir memoria replicada.
 - Usar una multiplicacion por bloques para mejorar localidad de cache.
 - Medir por separado comunicacion y computo.
 - Probar en un cluster fisico para comparar contra Docker.
-- Ejecutar Valgrind o sanitizers sobre tamanos pequenos para revisar memoria.
+- Probar sanitizers sobre tamanos pequenos como comprobacion complementaria.
